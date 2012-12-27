@@ -25,6 +25,7 @@ profileDefaultSettings = {
 	'skirt_line_count': '1',
 	'skirt_gap': '3.0',
 	'print_speed': '50',
+	'perimeter_speed': '40', 
 	'print_temperature': '220',
 	'print_bed_temperature': '70',
 	'support': 'None',
@@ -422,6 +423,20 @@ def calculateSolidLayerCount():
 	layerHeight = getProfileSettingFloat('layer_height')
 	solidThickness = getProfileSettingFloat('solid_layer_thickness')
 	return int(math.ceil(solidThickness / layerHeight - 0.0001))
+	
+def calculateReplaceBridgeSpeed():
+	bridgeRate = getProfileSettingFloat('bridge_speed')
+	printRate = getProfileSettingFloat('print_speed')
+	perimRate = getProfileSettingFloat('perimeter_speed')
+	slowRatio = perimRate / printRate
+	return (bridgeRate * slowRatio * 60 )
+	
+def calculateReplaceBottomSpeed():
+	bottomRate = getProfileSettingFloat('bottom_layer_speed')
+	printRate = getProfileSettingFloat('print_speed')
+	perimRate = getProfileSettingFloat('perimeter_speed')
+	slowRatio = perimRate / printRate
+	return (bottomRate * slowRatio * 60 )
 
 #########################################################
 ## Alteration file functions
@@ -443,7 +458,7 @@ def replaceTagMatch(m):
 		return pre + '#F_WGHT#'
 	if tag == 'filament_cost':
 		return pre + '#F_COST#'
-	if pre == 'F' and tag in ['print_speed', 'retraction_speed', 'travel_speed', 'max_z_speed', 'bottom_layer_speed', 'cool_min_feedrate']:
+	if pre == 'F' and tag in ['print_speed', 'retraction_speed', 'travel_speed', 'max_z_speed', 'bottom_layer_speed', 'cool_min_feedrate', 'perimeter_speed', 'bridge_speed']:
 		f = getProfileSettingFloat(tag) * 60
 	elif isProfileSetting(tag):
 		f = getProfileSettingFloat(tag)
@@ -524,7 +539,23 @@ def getAlterationFileContents(filename):
 		postfix = ';CURA_PROFILE_STRING:%s\n' % (getGlobalProfileString())
 	elif filename == 'replace.csv':
 		#Always remove the extruder on/off M codes. These are no longer needed in 5D printing.
-		prefix = 'M101\nM103\n'
+		prefix += 'M101\nM103\n'
+		#Attempt to fix perimeter speeds on bottom and bridge layers so they print the same speed as the infill
+		rate0 = calculateReplaceBridgeSpeed()
+		rate1 = (getProfileSettingFloat('bridge_speed') * 60)
+		rate2 = (getProfileSettingFloat('print_speed') * 60)
+		rate3 = (getProfileSettingFloat('perimeter_speed') * 60)
+		rate4 = (getProfileSettingFloat('bottom_layer_speed') * 60)
+		rate5 = (getProfileSettingFloat('travel_speed') * 60)
+		rate6 = (getProfileSettingFloat('max_z_speed') * 60)
+		rate7 = (getProfileSettingFloat('retraction_speed') * 60)
+		rate8 = calculateReplaceBottomSpeed()
+		if (rate0 != rate1 and rate0 != rate2 and rate0 != rate3 and rate0 != rate4 and 
+			rate0 != rate5 and rate0 != rate6 and rate0 != rate7):
+			prefix += 'F%.1f	F%.1f\n' % (rate0, rate1) 
+		if (rate8 != rate1 and rate8 != rate2 and rate8 != rate3 and rate8 != rate4 and 
+			rate8 != rate5 and rate8 != rate6 and rate8 != rate7):
+			prefix += 'F%.1f	F%.1f\n' % (rate8, rate4) 
 	elif filename == 'support_start.gcode' or filename == 'support_end.gcode':
 		#Add support start/end code 
 		if getProfileSetting('support_dual_extrusion') == 'True' and int(getPreference('extruder_amount')) > 1:

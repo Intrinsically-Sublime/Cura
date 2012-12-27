@@ -116,4 +116,31 @@ class printSpeedValidator(object):
 		except ValueError:
 			#We already have an error by the int/float validator in this case.
 			return SUCCESS, ''
+			
+class perimeterSpeedValidator(object):
+	def __init__(self, setting):
+		self.setting = setting
+		self.setting.validators.append(self)
+
+	def validate(self):
+		try:
+			printSpeed = profile.getProfileSettingFloat('print_speed')
+			perimeterSpeed = profile.getProfileSettingFloat('perimeter_speed')
+			
+			percent = (100 * (perimeterSpeed / printSpeed))
+			minPerimeter = (printSpeed * 0.75)
+			minPercent = 75
+			maxPercent = 100
+			
+			if percent < minPercent:
+				return ERROR, 'Minimum perimeter speed based on the current printspeed is %0.1fmm/s.' % (minPerimeter)
+			
+			if percent > maxPercent:
+				return ERROR, 'Perimeter speed should not exceed the print speed.'
+			
+			return SUCCESS, ''
+		except ValueError:
+			#We already have an error by the int/float validator in this case.
+			return SUCCESS, ''
+
 

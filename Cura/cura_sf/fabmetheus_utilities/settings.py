@@ -63,6 +63,11 @@ def firstLayerSpeedRatio(setting):
 	speed = profile.getProfileSettingFloat('print_speed')
 	return bottomSpeed/speed
 
+def perimeterSpeedRatio(setting):
+	perimeterSpeed = profile.getProfileSettingFloat('perimeter_speed')
+	speed = profile.getProfileSettingFloat('print_speed')
+	return perimeterSpeed/speed
+
 def calcSupportDistanceRatio(setting):
 	edgeWidth = calculateEdgeWidth(setting)
 	distance = profile.getProfileSettingFloat('support_distance')
@@ -198,8 +203,8 @@ def getProfileInformation():
 			'Object_First_Layers_Amount_Of_Layers_For_Speed_Change': DEFSET,
 			'Orbital_Feed_Rate_over_Operating_Feed_Rate_ratio': DEFSET,
 			'Maximum_Z_Feed_Rate_mm/s': DEFSET,
-			'Perimeter_Feed_Rate_Multiplier_ratio': DEFSET,
-			'Perimeter_Flow_Rate_Multiplier_ratio': DEFSET,
+			'Perimeter_Feed_Rate_Multiplier_ratio': perimeterSpeedRatio,
+			'Perimeter_Flow_Rate_Multiplier_ratio': perimeterSpeedRatio,
 			'Travel_Feed_Rate_mm/s': storedSettingFloat("travel_speed"),
 			'Bottom_layer_flow_rate_ratio': calcBottomLayerFlowRateRatio,
 		},'temperature': {

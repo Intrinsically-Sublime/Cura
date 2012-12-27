@@ -48,8 +48,11 @@ class expertConfigWindow(wx.Frame):
 		c = configBase.SettingRow(right, "Solid infill top", 'solid_top', True, 'Create a solid top surface, if set to false the top is filled with the fill percentage. Useful for cups/vases.')
 		c = configBase.SettingRow(right, "Infill overlap (%)", 'fill_overlap', '15', 'Amount of overlap between the infill and the walls. There is a slight overlap with the walls and the infill so the walls connect firmly to the infill.')
 		validators.validFloat(c, 0.0)
-
-		configBase.TitleRow(right, "Bridge")
+		
+		configBase.TitleRow(right, "Speeds")
+		c = configBase.SettingRow(right, "Perimeter Speed (mm/s)", 'perimeter_speed', '40', 'Defines the feed rate of the outer perimeter. \nThis should not be less than 75% of the print speed and should not be greater than the print speed.')
+		validators.validFloat(c, 1.0)
+		validators.perimeterSpeedValidator(c)
 		c = configBase.SettingRow(right, "Bridge speed (%)", 'bridge_speed', '100', 'Speed at which layers with bridges are printed, compared to normal printing speed.')
 		validators.validFloat(c, 0.0)
 		
