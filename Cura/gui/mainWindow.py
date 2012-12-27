@@ -437,14 +437,17 @@ class normalSettingsPanel(configBase.configPanelBase):
 		c = configBase.SettingRow(left, "Fill Density (%)", 'fill_density', '20', 'This controls how densily filled the insides of your print will be. For a solid part use 100%, for an empty part use 0%. A value around 20% is usually enough')
 		validators.validFloat(c, 0.0, 100.0)
 
-		configBase.TitleRow(right, "Speed && Temperature")
+		configBase.TitleRow(right, "Speed")
 		c = configBase.SettingRow(right, "Print speed (mm/s)", 'print_speed', '50', 'Speed at which printing happens. A well adjusted Ultimaker can reach 150mm/s, but for good quality prints you want to print slower. Printing speed depends on a lot of factors. So you will be experimenting with optimal settings for this.')
 		validators.validFloat(c, 1.0)
 		validators.warningAbove(c, 150.0, "It is highly unlikely that your machine can achieve a printing speed above 150mm/s")
 		validators.printSpeedValidator(c)
 
-		#configBase.TitleRow(right, "Temperature")
+		configBase.TitleRow(right, "Temperature")
 		c = configBase.SettingRow(right, "Printing temperature", 'print_temperature', '0', 'Temperature used for printing. Set at 0 to pre-heat yourself')
+		validators.validFloat(c, 0.0, 340.0)
+		validators.warningAbove(c, 260.0, "Temperatures above 260C could damage your machine, be careful!")
+		c = configBase.SettingRow(right, "First layer temperature", 'first_layer_temperature', '0', 'Temperature used for the first layer of printing. Set at 0 to use the printing temperature')
 		validators.validFloat(c, 0.0, 340.0)
 		validators.warningAbove(c, 260.0, "Temperatures above 260C could damage your machine, be careful!")
 		if profile.getPreference('has_heated_bed') == 'True':

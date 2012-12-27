@@ -27,6 +27,7 @@ profileDefaultSettings = {
 	'print_speed': '50',
 	'perimeter_speed': '40', 
 	'print_temperature': '220',
+	'first_layer_temperature': '0',
 	'print_bed_temperature': '70',
 	'support': 'None',
 	'filament_diameter': '2.89',
@@ -519,27 +520,35 @@ def getAlterationFileContents(filename):
 	alterationContents = getAlterationFile(filename)
 	if filename == 'start.gcode':
 		#For the start code, hack the temperature and the steps per E value into it. So the temperature is reached before the start code extrusion.
-		#We also set our steps per E here, if configured.
+		#Set our steps per E here, if configured.
 		eSteps = getPreferenceFloat('steps_per_e')
 		if eSteps > 0:
-			prefix += 'M92 E%f\n' % (eSteps)
-		temp = getProfileSettingFloat('print_temperature')
+			prefix += ';SET:E-STEPS_PER_MM\nM92 E%.3f\n' % (eSteps)
+		#Ensures temperature is reached before the start code is queued.
+		printTemp = getProfileSettingFloat('print_temperature')
+		firstTemp = getProfileSettingFloat('first_layer_temperature')
 		bedTemp = 0
 		if getPreference('has_heated_bed') == 'True':
 			bedTemp = getProfileSettingFloat('print_bed_temperature')
-		
 		if bedTemp > 0 and not '{print_bed_temperature}' in alterationContents:
-			prefix += 'M140 S%f\n' % (bedTemp)
-		if temp > 0 and not '{print_temperature}' in alterationContents:
-			prefix += 'M109 S%f\n' % (temp)
+			prefix += 'M140 S%d\n' % (bedTemp)
+		if firstTemp > 0 and not '{first_layer_temperature}' in alterationContents:
+			prefix += ';PRE-HEAT HOTEND\nM109 S%d\n' % (firstTemp)
+		elif firstTemp == 0 and printTemp > 0 and not '{print_temperature}' in alterationContents:
+			prefix += ';PRE-HEAT HOTEND\nM109 S%d\n' % (printTemp)
 		if bedTemp > 0 and not '{print_bed_temperature}' in alterationContents:
-			prefix += 'M190 S%f\n' % (bedTemp)
+			prefix += ';PRE-HEAT BED\nM190 S%d\n' % (bedTemp)
 	elif filename == 'end.gcode':
 		#Append the profile string to the end of the GCode, so we can load it from the GCode file later.
 		postfix = ';CURA_PROFILE_STRING:%s\n' % (getGlobalProfileString())
 	elif filename == 'replace.csv':
 		#Always remove the extruder on/off M codes. These are no longer needed in 5D printing.
 		prefix += 'M101\nM103\n'
+		#Insert print temperature command after first layer
+		printTemp = getProfileSettingFloat('print_temperature')
+		firstTemp = getProfileSettingFloat('first_layer_temperature')
+		if firstTemp > 0: #There must be a space after the first LAYER:1 in the following statement for this to work and not mess up layers 10-19
+			prefix += 'LAYER:1 	LAYER:1\\nM104 S%d\n' % (printTemp)
 		#Attempt to fix perimeter speeds on bottom and bridge layers so they print the same speed as the infill
 		rate0 = calculateReplaceBridgeSpeed()
 		rate1 = (getProfileSettingFloat('bridge_speed') * 60)
