@@ -53,7 +53,7 @@ class expertConfigWindow(wx.Frame):
 		c = configBase.SettingRow(right, "Perimeter Speed (mm/s)", 'perimeter_speed', '40', 'Defines the feed rate of the outer perimeter. \nThis should not be less than 75% of the print speed and should not be greater than the print speed.')
 		validators.validFloat(c, 1.0)
 		validators.perimeterSpeedValidator(c)
-		c = configBase.SettingRow(right, "Bridge speed (%)", 'bridge_speed', '100', 'Speed at which layers with bridges are printed, compared to normal printing speed.')
+		c = configBase.SettingRow(right, "Bridge speed (mm/s)", 'bridge_speed', '100', 'Speed at which layers with bridges are printed, compared to normal printing speed.')
 		validators.validFloat(c, 0.0)
 		
 		configBase.TitleRow(right, "Sequence")

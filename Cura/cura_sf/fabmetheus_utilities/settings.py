@@ -68,6 +68,11 @@ def perimeterSpeedRatio(setting):
 	speed = profile.getProfileSettingFloat('print_speed')
 	return perimeterSpeed/speed
 
+def bridgeSpeedRatio(setting):
+	bridge = profile.getProfileSettingFloat('bridge_speed')
+	speed = profile.getProfileSettingFloat('print_speed')
+	return bridge/speed
+
 def calcSupportDistanceRatio(setting):
 	edgeWidth = calculateEdgeWidth(setting)
 	distance = profile.getProfileSettingFloat('support_distance')
@@ -189,8 +194,8 @@ def getProfileInformation():
 		},'speed': {
 			'Activate_Speed': "True",
 			'Add_Flow_Rate': "True",
-			'Bridge_Feed_Rate_Multiplier_ratio': storedPercentSetting('bridge_speed'),
-			'Bridge_Flow_Rate_Multiplier_ratio': storedPercentSetting('bridge_speed'),
+			'Bridge_Feed_Rate_Multiplier_ratio': bridgeSpeedRatio,
+			'Bridge_Flow_Rate_Multiplier_ratio': bridgeSpeedRatio,
 			'Duty_Cyle_at_Beginning_portion': DEFSET,
 			'Duty_Cyle_at_Ending_portion': DEFSET,
 			'Feed_Rate_mm/s': storedSettingFloat("print_speed"),
