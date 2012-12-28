@@ -385,8 +385,8 @@ def getProfileInformation():
 			'Maximum_Speed_ratio': DEFSET,
 		},'dimension': {
 			'Activate_Dimension': "True",
-			'Absolute_Extrusion_Distance': "True",
-			'Relative_Extrusion_Distance': "False",
+			'Absolute_Extrusion_Distance': storedSettingInvertBoolean('relative_e'),#"True",
+			'Relative_Extrusion_Distance': storedSetting('relative_e'),#"False",
 			'Extruder_Retraction_Speed_mm/s': storedSettingFloat('retraction_speed'),
 			'Filament_Diameter_mm': storedSettingFloat("filament_diameter"),
 			'Filament_Packing_Density_ratio': storedSettingFloat("filament_density"),

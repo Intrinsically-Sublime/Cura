@@ -191,6 +191,8 @@ preferencesDefaultSettings = {
 	'model_colour2': '#CB3030',
 	'model_colour3': '#DDD93C',
 	'model_colour4': '#4550D3',
+	
+	'relative_e': 'False',
 }
 
 #########################################################
