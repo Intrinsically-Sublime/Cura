@@ -14,6 +14,7 @@ from __future__ import absolute_import
 import cStringIO
 import os
 
+from Cura.util import profile
 
 __author__ = 'Enrique Perez (perez_enrique@yahoo.com)'
 __date__ = '$Date: 2008/21/04 $'
@@ -71,6 +72,15 @@ class GcodeSmallSkein(object):
 		self.layerNr = 0
 		self.parsingAlteration = False
 		self.bridgeLayer = False
+		self.fanLayer = 0
+		self.bridge = 0
+		self.fill = 0
+		self.perim = 0
+		self.support = 0
+		self.bridgeFan = '\n'
+		self.perimFan = '\n'
+		self.fillFan = '\n'
+		self.supportFan = '\n'
 
 	def getCraftedGcode( self, gcodeText ):
 		"Parse gcode text and store the gcode."
@@ -120,21 +130,51 @@ class GcodeSmallSkein(object):
 		self.output.write('\n')
 	
 	def parseComment(self, line):
+		#Check to see at which layer the fans should be turned on
+		self.fanLayer = profile.getProfileSettingFloat('fan_layer')
+		#Get fan speeds from profile and determine if they are on and at what speed
+		#Create string so be inserted for fans
+		self.bridge = (profile.getProfileSettingFloat('fan_bridge') * 255 / 100)
+		if (self.bridge > 0):
+			self.bridgeFan = ('\n;FAN:BRIDGE\nM106 S%d\n') % (self.bridge)
+		self.perim = (profile.getProfileSettingFloat('fan_perimeter') * 255 / 100)
+		if (self.perim > 0):
+			self.perimFan = ('\n;FAN:PERIM\nM106 S%d\n') % (self.perim)
+		self.fill = (profile.getProfileSettingFloat('fan_infill') * 255 / 100)
+		if (self.fill > 0):
+			self.fillFan = ('\n;FAN:FILL\nM106 S%d\n') % (self.fill)
+		self.support = (profile.getProfileSettingFloat('fan_support') * 255 / 100)
+		if (self.support > 0):
+			self.supportFan = ('\n;FAN:SUPPORT\nM106 S%d\n') % (self.support)		
+		
 		if line.startswith('(<skirt>'):
 			self.output.write(';TYPE:SKIRT\n');
+		elif line.startswith('(<layer>'):
+			self.output.write(';LAYER:%d \n' % (self.layerNr)); #Space between %d and \n is required for post processing
+			self.layerNr += 1
+			self.bridgeLayer = False;
+		elif line.startswith('(<bridgeRotation>'):
+			self.output.write(';BRIDGE-LAYER\n');
+			self.bridgeLayer = True;
 		elif line.startswith('(<edge>'):
 			if (self.bridgeLayer):
-				self.output.write(';TYPE:OUTER:BRIDGE\n');
+				self.output.write(';TYPE:OUTER:BRIDGE%s' % (self.bridgeFan));
+			elif (self.layerNr > self.fanLayer):
+				self.output.write(';TYPE:WALL:OUTER%s' % (self.perimFan));
 			else:
-				self.output.write(';TYPE:WALL-OUTER\n');
+				self.output.write(';TYPE:WALL:OUTER\n');
 		elif line.startswith('(<loop>'):
 			if (self.bridgeLayer):
-				self.output.write(';TYPE:INNER:BRIDGE\n');
+				self.output.write(';TYPE:INNER:BRIDGE%s' % (self.bridgeFan));
+			elif (self.layerNr > self.fanLayer):
+				self.output.write(';TYPE:WALL:INNER%s' % (self.perimFan));
 			else:
-				self.output.write(';TYPE:WALL-INNER\n');
+				self.output.write(';TYPE:WALL:INNER\n');
 		elif line.startswith('(<infill>'):
 			if (self.bridgeLayer):
-				self.output.write(';TYPE:FILL:BRIDGE\n');
+				self.output.write(';TYPE:BRIDGE%s' % (self.bridgeFan));
+			elif (self.layerNr > self.fanLayer):
+				self.output.write(';TYPE:FILL%s' % (self.fillFan));
 			else:
 				self.output.write(';TYPE:FILL\n');
 		elif line.startswith('(<alteration>'):
@@ -143,12 +183,7 @@ class GcodeSmallSkein(object):
 		elif line.startswith('(</alteration>)'):
 			self.parsingAlteration = False
 		elif line.startswith('(<supportLayer>'):
-			self.output.write(';TYPE:SUPPORT\n');
-		elif line.startswith('(<layer>'):
-			self.output.write(';LAYER:%d\n' % (self.layerNr));
-			self.layerNr += 1
-			self.bridgeLayer = False;
-		elif line.startswith('(<bridgeRotation>'):
-			self.output.write(';BRIDGE-LAYER\n');
-			self.bridgeLayer = True;
-
+			if (self.layerNr > self.fanLayer):
+				self.output.write(';TYPE:SUPPORT%s' % (self.supportFan));
+			else:
+				self.output.write(';TYPE:SUPPORT\n');
