@@ -70,6 +70,7 @@ class GcodeSmallSkein(object):
 		self.output = cStringIO.StringIO()
 		self.layerNr = 0
 		self.parsingAlteration = False
+		self.bridgeLayer = False
 
 	def getCraftedGcode( self, gcodeText ):
 		"Parse gcode text and store the gcode."
@@ -122,11 +123,20 @@ class GcodeSmallSkein(object):
 		if line.startswith('(<skirt>'):
 			self.output.write(';TYPE:SKIRT\n');
 		elif line.startswith('(<edge>'):
-			self.output.write(';TYPE:WALL-OUTER\n');
+			if (self.bridgeLayer):
+				self.output.write(';TYPE:OUTER:BRIDGE\n');
+			else:
+				self.output.write(';TYPE:WALL-OUTER\n');
 		elif line.startswith('(<loop>'):
-			self.output.write(';TYPE:WALL-INNER\n');
+			if (self.bridgeLayer):
+				self.output.write(';TYPE:INNER:BRIDGE\n');
+			else:
+				self.output.write(';TYPE:WALL-INNER\n');
 		elif line.startswith('(<infill>'):
-			self.output.write(';TYPE:FILL\n');
+			if (self.bridgeLayer):
+				self.output.write(';TYPE:FILL:BRIDGE\n');
+			else:
+				self.output.write(';TYPE:FILL\n');
 		elif line.startswith('(<alteration>'):
 			self.output.write(';TYPE:CUSTOM\n');
 			self.parsingAlteration = True
@@ -137,4 +147,8 @@ class GcodeSmallSkein(object):
 		elif line.startswith('(<layer>'):
 			self.output.write(';LAYER:%d\n' % (self.layerNr));
 			self.layerNr += 1
+			self.bridgeLayer = False;
+		elif line.startswith('(<bridgeRotation>'):
+			self.output.write(';BRIDGE-LAYER\n');
+			self.bridgeLayer = True;
 
