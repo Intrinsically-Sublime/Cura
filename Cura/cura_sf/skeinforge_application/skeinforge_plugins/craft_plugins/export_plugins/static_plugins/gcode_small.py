@@ -73,6 +73,7 @@ class GcodeSmallSkein(object):
 		self.parsingAlteration = False
 		self.bridgeLayer = False
 		self.fanLayer = 0
+		self.fanEnabled = False
 		self.bridge = 0
 		self.fill = 0
 		self.perim = 0
@@ -135,16 +136,17 @@ class GcodeSmallSkein(object):
 		#Get fan speeds from profile and determine if they are on and at what speed
 		#Create string so be inserted for fans
 		self.bridge = (profile.getProfileSettingFloat('fan_bridge') * 255 / 100)
-		if (self.bridge > 0):
+		self.fanEnabled = profile.getProfileSetting("fan_enabled")
+		if (self.bridge > 0 and self.fanEnabled == 'True'):
 			self.bridgeFan = ('\n;FAN:BRIDGE\nM106 S%d\n') % (self.bridge)
 		self.perim = (profile.getProfileSettingFloat('fan_perimeter') * 255 / 100)
-		if (self.perim > 0):
+		if (self.perim > 0 and self.fanEnabled == 'True'):
 			self.perimFan = ('\n;FAN:PERIM\nM106 S%d\n') % (self.perim)
 		self.fill = (profile.getProfileSettingFloat('fan_infill') * 255 / 100)
-		if (self.fill > 0):
+		if (self.fill > 0 and self.fanEnabled == 'True'):
 			self.fillFan = ('\n;FAN:FILL\nM106 S%d\n') % (self.fill)
 		self.support = (profile.getProfileSettingFloat('fan_support') * 255 / 100)
-		if (self.support > 0):
+		if (self.support > 0 and self.fanEnabled == 'True'):
 			self.supportFan = ('\n;FAN:SUPPORT\nM106 S%d\n') % (self.support)		
 		
 		if line.startswith('(<skirt>'):
