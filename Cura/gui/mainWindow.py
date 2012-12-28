@@ -472,6 +472,8 @@ class normalSettingsPanel(configBase.configPanelBase):
 		configBase.TitleRow(left, "Machine size")
 		c = configBase.SettingRow(left, "Nozzle size (mm)", 'nozzle_size', '0.4', 'The nozzle size is very important, this is used to calculate the line width of the infill, and used to calculate the amount of outside wall lines and thickness for the wall thickness you entered in the print settings.')
 		validators.validFloat(c, 0.1, 10.0)
+		c = configBase.SettingRow(left, "Z offset", 'z_offset', '0.0', 'Z offset sets the distance the nozzle is from the platform after homing. If you do not use endstops for homing do not use it.\nnegative value = too far from the bed\npositive = too close to the bed')
+		validators.validFloat(c, -2.0, 2.0)
 
 		configBase.TitleRow(left, "Skirt")
 		c = configBase.SettingRow(left, "Line count", 'skirt_line_count', '1', 'The skirt is a line drawn around the object at the first layer. This helps to prime your extruder, and to see if the object fits on your platform.\nSetting this to 0 will disable the skirt. Multiple skirt lines can help priming your extruder better for small objects.')

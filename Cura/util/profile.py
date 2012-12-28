@@ -79,6 +79,7 @@ profileDefaultSettings = {
 	'plugin_config': '',
 	'object_center_x': '-1',
 	'object_center_y': '-1',
+	'z_offset': '0.0',
 	
 	'add_start_end_gcode': 'True',
 	'gcode_extension': 'gcode',
@@ -523,7 +524,7 @@ def getAlterationFileContents(filename):
 	postfix = ''
 	alterationContents = getAlterationFile(filename)
 	if filename == 'start.gcode':
-		#For the start code, hack the temperature and the steps per E value into it. So the temperature is reached before the start code extrusion.
+		#For the start code, hack the temperature, steps per E value and Z offset into it. 
 		#Set our steps per E here, if configured.
 		eSteps = getPreferenceFloat('steps_per_e')
 		if eSteps > 0:
@@ -542,6 +543,26 @@ def getAlterationFileContents(filename):
 			prefix += ';PRE-HEAT HOTEND\nM109 S%d\n' % (printTemp)
 		if bedTemp > 0 and not '{print_bed_temperature}' in alterationContents:
 			prefix += ';PRE-HEAT BED\nM190 S%d\n' % (bedTemp)
+		#Move to center and apply Z offset right before generated Gcode is queued
+		zOffSet = getProfileSettingFloat('z_offset')
+		maxZ = (getProfileSettingFloat('max_z_speed') * 60)
+		if getProfileSettingFloat('object_center_x') > 0:
+			xCenter = getProfileSettingFloat('object_center_x') 
+		else:
+			xCenter = getPreferenceFloat("machine_width") / 2
+		if getProfileSettingFloat('object_center_y') > 0:
+			yCenter = getProfileSettingFloat('object_center_y') 
+		else:
+			yCenter = getPreferenceFloat("machine_depth") / 2
+		speed = (getProfileSettingFloat('travel_speed') * 60)
+		if zOffSet > 0 and not 0:
+			postfix += 'G1 X%.2f Y%.2f F%.2f\n' % (xCenter, yCenter, speed)
+			postfix += 'G1 Z0.0 F%.0f\n' % (maxZ)
+			postfix += 'G92 Z%.2f\n' % (zOffSet)
+		if zOffSet < 0 and not 0:
+			postfix += 'G1 X%.2f Y%.2f F%.2f\n' % (xCenter, yCenter, speed)
+			postfix += 'G1 Z%.2f F%.0f\n' % (abs(zOffSet), maxZ)
+			postfix += 'G92 Z0.0\n'
 	elif filename == 'end.gcode':
 		#Append the profile string to the end of the GCode, so we can load it from the GCode file later.
 		postfix = ';CURA_PROFILE_STRING:%s\n' % (getGlobalProfileString())
