@@ -62,6 +62,7 @@ class gcode(object):
 		totalMoveTimeMinute = 0.0
 		scale = 1.0
 		posAbs = True
+		E_rel = False
 		feedRate = 3600
 		layerThickness = 0.1
 		pathType = 'CUSTOM';
@@ -71,6 +72,8 @@ class gcode(object):
 		currentPath.list[0].e = totalExtrusion
 		currentPath.list[0].extrudeAmountMultiply = extrudeAmountMultiply
 		currentLayer.append(currentPath)
+		if profile.getProfileSetting('relative_e'):
+			E_rel = True
 		for line in gcodeFile:
 			if type(line) is tuple:
 				line = line[0]
@@ -140,7 +143,12 @@ class gcode(object):
 						totalMoveTimeMinute += (oldPos - pos).vsize() / feedRate
 					moveType = 'move'
 					if e is not None:
-						if posAbs:
+						if E_rel:
+							if e > 0:
+								moveType = 'extrude'
+							if e < 0:
+								moveType = 'retract'
+						elif posAbs:
 							if e > currentE:
 								moveType = 'extrude'
 							if e < currentE:
@@ -217,6 +225,10 @@ class gcode(object):
 						pass
 					elif M == 81:	#Suicide/disable power supply
 						pass
+					elif M == 82:	#Set E codes to absolute (default)
+						pass
+					elif M == 83:	#Set E codes to Relative
+						E_rel = True
 					elif M == 84:	#Disable step drivers
 						pass
 					elif M == 92:	#Set steps per unit

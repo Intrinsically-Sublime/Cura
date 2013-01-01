@@ -435,10 +435,15 @@ def DrawGCodeLayer(layer):
 				v1 = path.list[i + 1]
 
 				# Calculate line width from ePerDistance (needs layer thickness and filament diameter)
+				# For relative extrusion use calculated lineWidth from profile to avoid un-retracts being shown as extremely wide paths
 				dist = (v0 - v1).vsize()
+				relative = profile.getProfileSetting('relative_e')
 				if dist > 0 and path.layerThickness > 0:
-					extrusionMMperDist = (v1.e - v0.e) / dist
-					lineWidth = extrusionMMperDist * filamentArea / path.layerThickness / 2 * v1.extrudeAmountMultiply
+					if relative:
+						lineWidth = profile.calculateEdgeWidth() * 0.4875
+					else:
+						extrusionMMperDist = (v1.e - v0.e) / dist
+						lineWidth = extrusionMMperDist * filamentArea / path.layerThickness / 2 * v1.extrudeAmountMultiply
 
 				drawLength += (v0 - v1).vsize()
 				normal = (v0 - v1).cross(util3d.Vector3(0, 0, 1))
