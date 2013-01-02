@@ -562,8 +562,14 @@ def getAlterationFileContents(filename):
 		#Move to object center and apply Z offset right before generated Gcode is queued
 		zOffSet = getProfileSettingFloat('z_offset')
 		maxZ = (getProfileSettingFloat('max_z_speed') * 60)
-		xCenter = getProfileSettingFloat('object_center_x') 
-		yCenter = getProfileSettingFloat('object_center_y')
+		if getProfileSettingFloat('machine_center_x') > 0:
+			xCenter = getProfileSettingFloat('machine_center_x') 
+		else:
+			xCenter = getPreferenceFloat("machine_width") / 2
+		if getProfileSettingFloat('machine_center_y') > 0:
+			yCenter = getProfileSettingFloat('machine_center_y') 
+		else:
+			yCenter = getPreferenceFloat("machine_depth") / 2
 		speed = (getProfileSettingFloat('travel_speed') * 60)
 		if zOffSet > 0 and not 0:
 			postfix += 'G1 X%.2f Y%.2f F%.2f\n' % (xCenter, yCenter, speed)
