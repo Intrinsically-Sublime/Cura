@@ -266,7 +266,7 @@ class mainWindow(wx.Frame):
 			return
 		isSimple = profile.getPreference('startMode') == 'Simple'
 		if isSimple:
-			#save the current profile so we can put it back latter
+			#save the current profile so we can put it back later
 			oldProfile = profile.getGlobalProfileString()
 			self.simpleSettingsPanel.setupSlice()
 		#Create a progress panel and add it to the window. The progress panel will start the Skein operation.
@@ -421,20 +421,20 @@ class normalSettingsPanel(configBase.configPanelBase):
 		self.GetSizer().Add(nb, 1)
 
 		(left, right) = self.CreateConfigTab(nb, 'Print config')
-
+		
 		configBase.TitleRow(left, "Quality")
 		c = configBase.SettingRow(left, "Layer height (mm)", 'layer_height', '0.2', 'Layer height in millimeters.\n0.2 is a good value for quick prints.\n0.1 gives high quality prints.')
 		validators.validFloat(c, 0.0001)
-		validators.warningAbove(c, lambda : (float(profile.getProfileSetting('nozzle_size')) * 80.0 / 100.0), "Thicker layers then %.2fmm (80%% nozzle size) usually give bad results and are not recommended.")
-		c = configBase.SettingRow(left, "Wall thickness (mm)", 'wall_thickness', '0.8', 'Thickness of the walls.\nThis is used in combination with the nozzle size to define the number\nof perimeter lines and the thickness of those perimeter lines.')
-		validators.validFloat(c, 0.0001)
-		validators.wallThicknessValidator(c)
+		validators.layerHeightValidator(c)
+		validators.calculatedResults(c)
 		c = configBase.SettingRow(left, "Enable retraction", 'retraction_enable', False, 'Retract the filament when the nozzle is moving over a none-printed area. Details about the retraction can be configured in the advanced tab.')
 
-		configBase.TitleRow(left, "Fill")
-		c = configBase.SettingRow(left, "Bottom/Top thickness (mm)", 'solid_layer_thickness', '0.6', 'This controls the thickness of the bottom and top layers, the amount of solid layers put down is calculated by the layer thickness and this value.\nHaving this value a multiply of the layer thickness makes sense. And keep it near your wall thickness to make an evenly strong part.')
-		validators.validFloat(c, 0.0)
-		c = configBase.SettingRow(left, "Fill Density (%)", 'fill_density', '20', 'This controls how densily filled the insides of your print will be. For a solid part use 100%, for an empty part use 0%. A value around 20% is usually enough')
+		configBase.TitleRow(left, "Strength")		
+		c = configBase.SettingRow(left, "Shell thickness (mm)", 'shell_thickness', '1.0', 'Requested thickness of the outer shell. The actual thickness is based on your layer height, nozzle diameter and die swell value.')
+		validators.validFloat(c, 0.0001)
+		validators.wallThicknessValidator(c)
+		validators.calculatedResults(c)
+		c = configBase.SettingRow(left, "Fill Density (%)", 'fill_density', '20', 'This controls how densily filled the insides of your print will be. For a solid part use 100%, for an empty part use 0%. A value around 20% is usually enough.')
 		validators.validFloat(c, 0.0, 100.0)
 
 		configBase.TitleRow(right, "Speed")
@@ -444,14 +444,14 @@ class normalSettingsPanel(configBase.configPanelBase):
 		validators.printSpeedValidator(c)
 
 		configBase.TitleRow(right, "Temperature")
-		c = configBase.SettingRow(right, "Printing temperature", 'print_temperature', '0', 'Temperature used for printing. Set at 0 to pre-heat yourself')
+		c = configBase.SettingRow(right, "Printing temperature", 'print_temperature', '0', 'Temperature used for printing. Set to 0 to use the first layer temperature.')
 		validators.validFloat(c, 0.0, 340.0)
 		validators.warningAbove(c, 260.0, "Temperatures above 260C could damage your machine, be careful!")
-		c = configBase.SettingRow(right, "First layer temperature", 'first_layer_temperature', '0', 'Temperature used for the first layer of printing. Set at 0 to use the printing temperature')
+		c = configBase.SettingRow(right, "First layer temperature", 'first_layer_temperature', '0', 'Temperature used for the first layer of printing. Set to 0 to use the print temperature and/or preheat the hotend manually')
 		validators.validFloat(c, 0.0, 340.0)
 		validators.warningAbove(c, 260.0, "Temperatures above 260C could damage your machine, be careful!")
 		if profile.getPreference('has_heated_bed') == 'True':
-			c = configBase.SettingRow(right, "Bed temperature", 'print_bed_temperature', '0', 'Temperature used for the heated printer bed. Set at 0 to pre-heat yourself')
+			c = configBase.SettingRow(right, "Bed temperature", 'print_bed_temperature', '0', 'Temperature used for the heated printer bed. Set to 0 to pre-heat yourself')
 			validators.validFloat(c, 0.0, 340.0)
 
 		configBase.TitleRow(right, "Support structure")
@@ -470,8 +470,9 @@ class normalSettingsPanel(configBase.configPanelBase):
 		(left, right) = self.CreateConfigTab(nb, 'Advanced config')
 
 		configBase.TitleRow(left, "Machine size")
-		c = configBase.SettingRow(left, "Nozzle size (mm)", 'nozzle_size', '0.4', 'The nozzle size is very important, this is used to calculate the line width of the infill, and used to calculate the amount of outside wall lines and thickness for the wall thickness you entered in the print settings.')
+		c = configBase.SettingRow(left, "Nozzle size (mm)", 'nozzle_size', '0.4', 'The nozzle size is very important, this is used in combination with the die swell to calculate the path width and maximum layer height. To force the extrusion width to the nozzle diameter set the die swell to 0.\n\nBe sure to enter the actual drilled diameter.\n\nKnown Values:\nREAL J-head 0.03 less than rated size.')
 		validators.validFloat(c, 0.1, 10.0)
+		validators.calculatedResults(c)
 		c = configBase.SettingRow(left, "Z offset", 'z_offset', '0.0', 'Z offset sets the distance the nozzle is from the platform after homing. If you do not use endstops for homing do not use it.\nnegative value = too far from the bed\npositive = too close to the bed')
 		validators.validFloat(c, -2.0, 2.0)
 

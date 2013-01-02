@@ -19,8 +19,7 @@ from Cura.util import version
 profileDefaultSettings = {
 	'nozzle_size': '0.4',
 	'layer_height': '0.2',
-	'wall_thickness': '0.8',
-	'solid_layer_thickness': '0.6',
+	'shell_thickness': '1.0',
 	'fill_density': '20',
 	'skirt_line_count': '1',
 	'skirt_gap': '3.0',
@@ -86,6 +85,9 @@ profileDefaultSettings = {
 	'alternative_center': '',
 	'clear_z': '0.0',
 	'extruder': '0',
+	
+	'relative_e': 'False',
+	'die_swell': '0.15',
 }
 alterationDefault = {
 #######################################################################################
@@ -192,8 +194,6 @@ preferencesDefaultSettings = {
 	'model_colour2': '#CB3030',
 	'model_colour3': '#DDD93C',
 	'model_colour4': '#4550D3',
-	
-	'relative_e': 'False',
 }
 
 #########################################################
@@ -397,38 +397,54 @@ def resetTempOverride():
 #########################################################
 ## Utility functions to calculate common profile values
 #########################################################
-def calculateEdgeWidth():
-	wallThickness = getProfileSettingFloat('wall_thickness')
-	nozzleSize = getProfileSettingFloat('nozzle_size')
-	
-	if wallThickness < nozzleSize:
-		return wallThickness
 
-	lineCount = int(wallThickness / nozzleSize + 0.0001)
-	lineWidth = wallThickness / lineCount
-	lineWidthAlt = wallThickness / (lineCount + 1)
-	if lineWidth > nozzleSize * 1.5:
-		return lineWidthAlt
-	return lineWidth
+def calculateMaxLayer():
+	nozzleSize = getProfileSettingFloat('nozzle_size')
+	maxSwell = getProfileSettingFloat('die_swell')
+	maxLayer = ((nozzleSize + maxSwell) * 0.66)
+	return maxLayer
+
+def calculateEdgeWidth():
+	shellThickness = getProfileSettingFloat('shell_thickness')
+	nozzleSize = getProfileSettingFloat('nozzle_size')
+	layerHeight = getProfileSettingFloat('layer_height')
+	maxSwell = getProfileSettingFloat('die_swell')
+	minLayer = 0.1
+	maxLayer = ((nozzleSize + maxSwell) * 0.66)
+	maxWidth = nozzleSize + maxSwell
+	
+	if shellThickness <= nozzleSize:
+		return shellThickness
+	
+	elif layerHeight < minLayer:
+		return nozzleSize
+		
+	elif layerHeight >= minLayer and layerHeight < maxLayer:
+		diff = maxSwell / (maxLayer - minLayer)
+		swell = (layerHeight - minLayer) * diff
+		pathWidth = (nozzleSize + swell)
+		return round(pathWidth, 2)
+	else:
+		return maxWidth
 
 def calculateLineCount():
-	wallThickness = getProfileSettingFloat('wall_thickness')
-	nozzleSize = getProfileSettingFloat('nozzle_size')
+	shellThickness = getProfileSettingFloat('shell_thickness')
+	pathWidth = calculateEdgeWidth()
 	
-	if wallThickness < nozzleSize:
+	if shellThickness < pathWidth:
 		return 1
 
-	lineCount = int(wallThickness / nozzleSize + 0.0001)
-	lineWidth = wallThickness / lineCount
-	lineWidthAlt = wallThickness / (lineCount + 1)
-	if lineWidth > nozzleSize * 1.5:
-		return lineCount + 1
-	return lineCount
+	# Check line count and round up or down to nearest multiple of pathSize
+	lineCount = round(shellThickness / pathWidth, 0)
+	return int(lineCount)
 
 def calculateSolidLayerCount():
 	layerHeight = getProfileSettingFloat('layer_height')
-	solidThickness = getProfileSettingFloat('solid_layer_thickness')
-	return int(math.ceil(solidThickness / layerHeight - 0.0001))
+	shellThickness = getProfileSettingFloat('shell_thickness')
+	
+	# Check layer count and round up or down to nearest multiple of layerThickness
+	solidCount = round(shellThickness / layerHeight, 0)
+	return int(solidCount)
 	
 def calculateReplaceBridgeSpeed():
 	bridgeRate = getProfileSettingFloat('bridge_speed')

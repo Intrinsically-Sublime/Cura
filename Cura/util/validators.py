@@ -9,6 +9,7 @@ from Cura.util import profile
 SUCCESS = 0
 WARNING = 1
 ERROR   = 2
+RESULT	= 3
 
 class validFloat(object):
 	def __init__(self, setting, minValue = None, maxValue = None):
@@ -73,22 +74,33 @@ class wallThicknessValidator(object):
 		self.setting.validators.append(self)
 	
 	def validate(self):
-		try:
-			wallThickness = profile.getProfileSettingFloat('wall_thickness')
+		try:	
+			wallThickness = profile.getProfileSettingFloat('shell_thickness')
 			nozzleSize = profile.getProfileSettingFloat('nozzle_size')
 			if wallThickness <= nozzleSize * 0.5:
-				return ERROR, 'Trying to print walls thinner then the half of your nozzle size, this will not produce anything usable'
+				return ERROR, 'Trying to print walls thinner then the half of your nozzle size, this will not produce anything usable\n'
 			if wallThickness <= nozzleSize * 0.85:
-				return WARNING, 'Trying to print walls thinner then the 0.8 * nozzle size. Small chance that this will produce usable results'
-			if wallThickness < nozzleSize:
-				return SUCCESS, ''
-			
-			lineCount = int(wallThickness / nozzleSize)
-			lineWidth = wallThickness / lineCount
-			lineWidthAlt = wallThickness / (lineCount + 1)
-			if lineWidth >= nozzleSize * 1.5 and lineWidthAlt <= nozzleSize * 0.85:
-				return WARNING, 'Current selected wall thickness results in a line thickness of ' + str(lineWidthAlt) + 'mm which is not recommended with your nozzle of ' + str(nozzleSize) + 'mm'
+				return WARNING, 'Trying to print walls thinner then the 0.8 * nozzle size. Small chance that this will produce usable results\n'
 			return SUCCESS, ''
+		except ValueError:
+			#We already have an error by the int/float validator in this case.
+			return SUCCESS, ''
+			
+class layerHeightValidator(object):
+	def __init__(self, setting):
+		self.setting = setting
+		self.setting.validators.append(self)
+	
+	def validate(self):
+		try:
+			layerHeight = profile.getProfileSettingFloat('layer_height')
+			maxLayer = profile.calculateMaxLayer()
+			if layerHeight > maxLayer:
+				return ERROR, 'The recommended maximum layer based on your nozzle and die swell is %.4fmm anything above this usually give bad results and is not recommended.\n' % (maxLayer)
+			if layerHeight < 0.099999:
+				return WARNING, 'Layer heights below 0.1mm can be difficult to print'
+			if layerHeight < maxLayer and layerHeight > 0.099999:
+				return SUCCESS, ''
 		except ValueError:
 			#We already have an error by the int/float validator in this case.
 			return SUCCESS, ''
@@ -142,5 +154,21 @@ class perimeterSpeedValidator(object):
 		except ValueError:
 			#We already have an error by the int/float validator in this case.
 			return SUCCESS, ''
-
+			
+class calculatedResults(object):
+	def __init__(self, setting):
+		self.setting = setting
+		self.setting.validators.append(self)
+	
+	def validate(self):
+		try:
+			maxLayer = profile.calculateMaxLayer()
+			edgeWidth = profile.calculateEdgeWidth()	
+			lineCount = profile.calculateLineCount()
+			layerCount = profile.calculateSolidLayerCount()
+			layerHeight = profile.getProfileSettingFloat('layer_height')
+			return RESULT, 'Extrusion Width: %.2fmm\nPerimeter Count: %d\nPerimeter Thickness: %.3fmm\nSolid Layer Count: %d\nSolid Layer Thickness: %.2fmm\n\nMaximum Layer Height: %.3fmm' % (edgeWidth, lineCount, lineCount * edgeWidth, layerCount, layerCount * layerHeight, maxLayer)			
+		except ValueError:
+			#We already have an error by the int/float validator in this case.
+			return SUCCESS, ''	
 
