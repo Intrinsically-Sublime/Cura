@@ -409,7 +409,7 @@ def calculateEdgeWidth():
 	nozzleSize = getProfileSettingFloat('nozzle_size')
 	layerHeight = getProfileSettingFloat('layer_height')
 	maxSwell = getProfileSettingFloat('die_swell')
-	minLayer = 0.1
+	minLayer = 0.08
 	maxLayer = ((nozzleSize + maxSwell) * 0.66)
 	maxWidth = nozzleSize + maxSwell
 	
