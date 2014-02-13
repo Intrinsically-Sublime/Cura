@@ -285,6 +285,7 @@ class CustomRepRapInfoPage(InfoPage):
 		self.nozzleSize = self.AddLabelTextCtrl(_("Nozzle size (mm)"), "0.5")
 		self.heatedBed = self.AddCheckbox(_("Heated bed"))
 		self.HomeAtCenter = self.AddCheckbox(_("Bed center is 0,0,0 (RoStock)"))
+		self.relativeE = self.AddCheckbox(_("Relative Extrusion"))
 
 	def StoreData(self):
 		profile.putMachineSetting('machine_name', self.machineName.GetValue())
@@ -295,6 +296,7 @@ class CustomRepRapInfoPage(InfoPage):
 		profile.putProfileSetting('wall_thickness', float(profile.getProfileSettingFloat('nozzle_size')) * 2)
 		profile.putMachineSetting('has_heated_bed', str(self.heatedBed.GetValue()))
 		profile.putMachineSetting('machine_center_is_zero', str(self.HomeAtCenter.GetValue()))
+		profile.putMachineSetting('relative extrusion', str(self.relativeE.GetValue()))
 		profile.putMachineSetting('extruder_head_size_min_x', '0')
 		profile.putMachineSetting('extruder_head_size_min_y', '0')
 		profile.putMachineSetting('extruder_head_size_max_x', '0')
@@ -375,6 +377,7 @@ class MachineSelectPage(InfoPage):
 			profile.putMachineSetting('machine_name', 'reprap')
 			profile.putMachineSetting('machine_type', 'reprap')
 			profile.putMachineSetting('gcode_flavor', 'RepRap (Marlin/Sprinter)')
+			profile.putMachineSetting('relative_extrusion', 'False')
 			profile.putPreference('startMode', 'Normal')
 			profile.putProfileSetting('nozzle_size', '0.5')
 		profile.checkAndUpdateMachineName()
