@@ -459,6 +459,7 @@ class Engine(object):
 			'startCode': profile.getAlterationFileContents('start.gcode', extruderCount),
 			'endCode': profile.getAlterationFileContents('end.gcode', extruderCount),
 			'relativeE': 1 if profile.getMachineSetting('relative_extrusion') == 'True' else 0,
+			'perimInset': int(profile.getProfileSettingFloat('perimeter_inset') * 1000),
 
 			'extruderOffset[1].X': int(profile.getMachineSettingFloat('extruder_offset_x1') * 1000),
 			'extruderOffset[1].Y': int(profile.getMachineSettingFloat('extruder_offset_y1') * 1000),
