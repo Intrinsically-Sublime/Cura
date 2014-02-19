@@ -4,7 +4,12 @@ Cura
 Read this, it's important!
 ===========================
 
-If you are reading this, then you are looking at the *development* version of Cura. If you just want to use Cura, take a look at the following location: https://daid.github.com/Cura
+If you are reading this, then you are looking at a custom *development* fork of Cura. If you just want to use Cura, take a look at : https://daid.github.com/Cura
+
+Additions and changes
+=====================
+* Relative Extrusion
+* Perimeter Inset
 
 Development
 ===========
