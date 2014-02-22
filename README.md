@@ -10,6 +10,7 @@ Additions and changes
 =====================
 * Relative Extrusion
 * Perimeter Inset
+* Option to remove YouMagine buttons
 
 Development
 ===========
