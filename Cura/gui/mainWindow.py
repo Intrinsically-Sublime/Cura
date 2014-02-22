@@ -85,8 +85,6 @@ class mainWindow(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.OnPreferences, i)
 		i = self.fileMenu.Append(-1, _("Machine settings..."))
 		self.Bind(wx.EVT_MENU, self.OnMachineSettings, i)
-		i = self.fileMenu.Append(-1, _("Material settings..."))
-		self.Bind(wx.EVT_MENU, self.OnMaterialSettings, i)
 		self.fileMenu.AppendSeparator()
 
 		# Model MRU list
@@ -141,12 +139,6 @@ class mainWindow(wx.Frame):
 		self.updateMachineMenu()
 
 		self.menubar.Append(self.machineMenu, _("Machine"))
-
-		#Material menu for material configuration
-		self.materialMenu = wx.Menu()
-		self.updateMaterialMenu()
-
-		self.menubar.Append(self.materialMenu, _("Material"))
 
 		expertMenu = wx.Menu()
 		i = expertMenu.Append(-1, _("Switch to quickprint..."), kind=wx.ITEM_RADIO)
@@ -350,12 +342,6 @@ class mainWindow(wx.Frame):
 		prefDialog.Show()
 		prefDialog.Raise()
 
-	def OnMaterialSettings(self, e):
-		prefDialog = preferencesDialog.materialSettingsDialog(self)
-		prefDialog.Centre()
-		prefDialog.Show()
-		prefDialog.Raise()
-
 	def OnDropFiles(self, files):
 		if len(files) > 0:
 			profile.setPluginConfig([])
@@ -442,23 +428,6 @@ class mainWindow(wx.Frame):
 		i = self.machineMenu.Append(-1, _("Install custom firmware..."))
 		self.Bind(wx.EVT_MENU, self.OnCustomFirmware, i)
 
-	def updateMaterialMenu(self):
-		#Remove all items so we can rebuild the menu. Inserting items seems to cause crashes, so this is the safest way.
-		for item in self.materialMenu.GetMenuItems():
-			self.materialMenu.RemoveItem(item)
-
-		#Add a menu item for each material configuration.
-		for n in xrange(0, profile.getMaterialCount()):
-			i = self.materialMenu.Append(n + 0x1000, profile.getMaterialSetting('material_name', n).title(), kind=wx.ITEM_RADIO)
-			if n == int(profile.getPreferenceFloat('active_material')):
-				i.Check(True)
-			self.Bind(wx.EVT_MENU, lambda e: self.OnSelectMaterial(e.GetId() - 0x1000), i)
-
-		self.materialMenu.AppendSeparator()
-
-		i = self.materialMenu.Append(-1, _("Material settings..."))
-		self.Bind(wx.EVT_MENU, self.OnMaterialSettings, i)
-
 	def OnLoadProfile(self, e):
 		dlg=wx.FileDialog(self, _("Select profile file to load"), os.path.split(profile.getPreference('lastFile'))[0], style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
 		dlg.SetWildcard("ini files (*.ini)|*.ini")
@@ -535,10 +504,6 @@ class mainWindow(wx.Frame):
 
 	def OnSelectMachine(self, index):
 		profile.setActiveMachine(index)
-		self.reloadSettingPanels()
-
-	def OnSelectMaterial(self, index):
-		profile.setActiveMaterial(index)
 		self.reloadSettingPanels()
 
 	def OnBedLevelWizard(self, e):
