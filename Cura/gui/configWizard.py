@@ -296,7 +296,7 @@ class CustomRepRapInfoPage(InfoPage):
 		profile.putProfileSetting('wall_thickness', float(profile.getProfileSettingFloat('nozzle_size')) * 2)
 		profile.putMachineSetting('has_heated_bed', str(self.heatedBed.GetValue()))
 		profile.putMachineSetting('machine_center_is_zero', str(self.HomeAtCenter.GetValue()))
-		profile.putMachineSetting('relative extrusion', str(self.relativeE.GetValue()))
+		profile.putMachineSetting('relative_extrusion', str(self.relativeE.GetValue()))
 		profile.putMachineSetting('extruder_head_size_min_x', '0')
 		profile.putMachineSetting('extruder_head_size_min_y', '0')
 		profile.putMachineSetting('extruder_head_size_max_x', '0')
