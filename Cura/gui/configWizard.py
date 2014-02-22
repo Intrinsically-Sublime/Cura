@@ -379,6 +379,7 @@ class MachineSelectPage(InfoPage):
 			profile.putMachineSetting('gcode_flavor', 'RepRap (Marlin/Sprinter)')
 			profile.putMachineSetting('relative_extrusion', 'False')
 			profile.putPreference('startMode', 'Normal')
+			profile.putPreference('use_youmagine', 'True')
 			profile.putProfileSetting('nozzle_size', '0.5')
 		profile.checkAndUpdateMachineName()
 		profile.putProfileSetting('wall_thickness', float(profile.getProfileSetting('nozzle_size')) * 2)
