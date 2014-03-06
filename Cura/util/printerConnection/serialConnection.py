@@ -1,3 +1,7 @@
+"""
+The serial/USB printer connection. Uses a 2nd python process to connect to the printer so we never
+have locking problems where other threads in python can block the USB printing.
+"""
 __copyright__ = "Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License"
 
 import threading
@@ -12,6 +16,10 @@ from Cura.util import machineCom
 from Cura.util.printerConnection import printerConnectionBase
 
 class serialConnectionGroup(printerConnectionBase.printerConnectionGroup):
+	"""
+	The serial connection group. Keeps track of all available serial ports,
+	and builds a serialConnection for each port.
+	"""
 	def __init__(self):
 		super(serialConnectionGroup, self).__init__("USB")
 		self._connectionMap = {}
@@ -33,6 +41,12 @@ class serialConnectionGroup(printerConnectionBase.printerConnectionGroup):
 		return 50
 
 class serialConnection(printerConnectionBase.printerConnectionBase):
+	"""
+	A serial connection. Needs to build an active-connection.
+	When an active connection is created, a 2nd python process is spawned which handles the actual serial communication.
+
+	This class communicates with the Cura.serialCommunication module trough stdin/stdout pipes.
+	"""
 	def __init__(self, port):
 		super(serialConnection, self).__init__(port)
 		self._portName = port
@@ -139,7 +153,7 @@ class serialConnection(printerConnectionBase.printerConnectionBase):
 	def getBedTemperature(self):
 		return self._bedTemperature
 
-	#Are we able to send a direct coammand with sendCommand at this moment in time.
+	#Are we able to send a direct command with sendCommand at this moment in time.
 	def isAbleToSendDirectCommand(self):
 		return self.isActiveConnectionOpen()
 

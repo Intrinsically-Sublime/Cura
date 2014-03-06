@@ -18,6 +18,10 @@ from Cura.util import resources
 _pluginList = None
 
 class pluginInfo(object):
+	"""
+	Plugin information object. Used to keep track of information about the available plugins in this installation of Cura.
+	Each plugin as meta-data associated with it which can be retrieved from this class.
+	"""
 	def __init__(self, dirname, filename):
 		self._dirname = dirname
 		self._filename = filename
@@ -90,16 +94,17 @@ def getPluginList(pluginType):
 	if _pluginList is None:
 		_pluginList = []
 		for basePath in getPluginBasePaths():
-			for filename in os.listdir(basePath):
-				if filename.startswith('.'):
-					continue
-				if filename.startswith('_'):
-					continue
-				if os.path.isdir(os.path.join(basePath, filename)):
-					if os.path.exists(os.path.join(basePath, filename, 'script.py')):
-						_pluginList.append(pluginInfo(basePath, os.path.join(filename, 'script.py')))
-				elif filename.endswith('.py'):
-					_pluginList.append(pluginInfo(basePath, filename))
+			if os.path.isdir(basePath):
+				for filename in os.listdir(basePath):
+					if filename.startswith('.'):
+						continue
+					if filename.startswith('_'):
+						continue
+					if os.path.isdir(os.path.join(basePath, filename)):
+						if os.path.exists(os.path.join(basePath, filename, 'script.py')):
+							_pluginList.append(pluginInfo(basePath, os.path.join(filename, 'script.py')))
+					elif filename.endswith('.py'):
+						_pluginList.append(pluginInfo(basePath, filename))
 	ret = []
 	for plugin in _pluginList:
 		if plugin.getType() == pluginType:

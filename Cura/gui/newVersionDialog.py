@@ -28,6 +28,16 @@ class newVersionDialog(wx.Dialog):
 		s.Add(wx.StaticText(p, -1, 'New in this version:'))
 		s.Add(wx.StaticText(p, -1, '* Improved the LayerView rendering speed.'))
 		s.Add(wx.StaticText(p, -1, '* Made the LayerView update during slicing, so you can see the result before it is ready.'))
+		s.Add(wx.StaticText(p, -1, '* New USB printing dialog, smaller, cleaner.'))
+		s.Add(wx.StaticText(p, -1, '* Selectable USB printing dialogs, from plugins.'))
+		s.Add(wx.StaticText(p, -1, '* Selection between new grid or old line based support material.'))
+		s.Add(wx.StaticText(p, -1, '* Profile settings are now stored per machine instead of global for all machines.'))
+		s.Add(wx.StaticText(p, -1, '* Added TweakAtZ 3.1 plugin per default. Thanks to Steve Morlock, Ricardo Gomez and Stefan Heule.'))
+		s.Add(wx.StaticText(p, -1, '* Added separate speeds for outer and inner shells.'))
+		s.Add(wx.StaticText(p, -1, '* Added expert Z-Hop feature.'))
+		s.Add(wx.StaticText(p, -1, '* Removed need for temp files, which speeds up Cura on slower harddisks.'))
+		s.Add(wx.StaticText(p, -1, '* Added expert setting to configure support material angle.'))
+		s.Add(wx.StaticText(p, -1, '* Allow round printer beds for Deltabots.'))
 
 		self.hasUltimaker = None
 		self.hasUltimaker2 = None
@@ -43,10 +53,13 @@ class newVersionDialog(wx.Dialog):
 			button = wx.Button(p, -1, 'Install now')
 			self.Bind(wx.EVT_BUTTON, self.OnUltimakerFirmware, button)
 			s.Add(button, flag=wx.TOP, border=5)
-		if self.hasUltimaker2 is not None and False:
+		if self.hasUltimaker2 is not None:
 			s.Add(wx.StaticLine(p), flag=wx.EXPAND|wx.TOP|wx.BOTTOM, border=10)
 			s.Add(wx.StaticText(p, -1, 'New firmware for your Ultimaker2:'))
-			s.Add(wx.StaticText(p, -1, '* .'))
+			s.Add(wx.StaticText(p, -1, '* Added pause function during printing.'))
+			s.Add(wx.StaticText(p, -1, '* Added material selection when changing material.'))
+			s.Add(wx.StaticText(p, -1, '* Fixed the move material maintenance function.'))
+			s.Add(wx.StaticText(p, -1, '* Fixed the led brightness on startup.'))
 			button = wx.Button(p, -1, 'Install now')
 			self.Bind(wx.EVT_BUTTON, self.OnUltimaker2Firmware, button)
 			s.Add(button, flag=wx.TOP, border=5)

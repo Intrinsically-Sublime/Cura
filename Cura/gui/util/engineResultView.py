@@ -3,6 +3,7 @@ __copyright__ = "Copyright (C) 2013 David Braam - Released under terms of the AG
 import wx
 import numpy
 import math
+import threading
 
 import OpenGL
 OpenGL.ERROR_CHECKING = False
@@ -19,6 +20,7 @@ class engineResultView(object):
 		self._result = None
 		self._enabled = False
 		self._gcodeLoadProgress = 0
+		self._resultLock = threading.Lock()
 		self._layerVBOs = []
 		self._layer20VBOs = []
 
@@ -27,7 +29,10 @@ class engineResultView(object):
 	def setResult(self, result):
 		if self._result == result:
 			return
+		if result is None:
+			self.setEnabled(False)
 
+		self._resultLock.acquire()
 		self._result = result
 
 		#Clean the saved VBO's
@@ -39,6 +44,7 @@ class engineResultView(object):
 				self._parent.glReleaseList.append(layer[typeName])
 		self._layerVBOs = []
 		self._layer20VBOs = []
+		self._resultLock.release()
 
 	def setEnabled(self, enabled):
 		self._enabled = enabled
@@ -56,11 +62,14 @@ class engineResultView(object):
 		if not self._enabled:
 			return
 
+		self._resultLock.acquire()
 		result = self._result
-		if result is not None and result._polygons is not None:
-			self.layerSelect.setRange(1, len(result._polygons))
 		if result is not None:
 			gcodeLayers = result.getGCodeLayers(self._gcodeLoadCallback)
+			if result._polygons is not None and len(result._polygons) > 0:
+				self.layerSelect.setRange(1, len(result._polygons))
+			elif gcodeLayers is not None and len(gcodeLayers) > 0:
+				self.layerSelect.setRange(1, len(gcodeLayers))
 		else:
 			gcodeLayers = None
 
@@ -71,7 +80,7 @@ class engineResultView(object):
 		glLineWidth(2)
 
 		layerNr = self.layerSelect.getValue()
-		if layerNr == self.layerSelect.getMaxValue() and result is not None:
+		if layerNr == self.layerSelect.getMaxValue() and result is not None and len(result._polygons) > 0:
 			layerNr = max(layerNr, len(result._polygons))
 		viewZ = (layerNr - 1) * profile.getProfileSettingFloat('layer_height') + profile.getProfileSettingFloat('bottom_thickness')
 		self._parent._viewTarget[2] = viewZ
@@ -88,56 +97,62 @@ class engineResultView(object):
 		]
 		n = layerNr - 1
 		generatedVBO = False
-		while n >= 0:
-			if layerNr - n > 30 and n % 20 == 0:
-				idx = n / 20
-				while len(self._layer20VBOs) < idx + 1:
-					self._layer20VBOs.append({})
-				if result is not None and result._polygons is not None and n + 20 < len(result._polygons):
-					layerVBOs = self._layer20VBOs[idx]
-					for typeName, typeNameGCode, color in lineTypeList:
-						if (typeName in result._polygons[n + 19]) or (typeName == 'skirt' and typeName in result._polygons[n]):
-							if typeName not in layerVBOs:
-								if generatedVBO:
-									continue
-								polygons = []
+		if result is not None:
+			while n >= 0:
+				if layerNr - n > 30 and n % 20 == 0 and len(result._polygons) > 0:
+					idx = n / 20
+					while len(self._layer20VBOs) < idx + 1:
+						self._layer20VBOs.append({})
+					if result._polygons is not None and n + 20 < len(result._polygons):
+						layerVBOs = self._layer20VBOs[idx]
+						for typeName, typeNameGCode, color in lineTypeList:
+							allow = typeName in result._polygons[n + 19]
+							if typeName == 'skirt':
 								for i in xrange(0, 20):
 									if typeName in result._polygons[n + i]:
-										polygons += result._polygons[n + i][typeName]
-								layerVBOs[typeName] = self._polygonsToVBO_lines(polygons)
-								generatedVBO = True
-							glColor4f(color[0]*0.5,color[1]*0.5,color[2]*0.5,color[3])
-							layerVBOs[typeName].render()
-				n -= 20
-			else:
-				c = 1.0 - ((layerNr - n) - 1) * 0.05
-				c = max(0.5, c)
-				while len(self._layerVBOs) < n + 1:
-					self._layerVBOs.append({})
-				layerVBOs = self._layerVBOs[n]
-				if gcodeLayers is not None and layerNr - 10 < n < (len(gcodeLayers) - 1):
-					for typeNamePolygons, typeName, color in lineTypeList:
-						if typeName is None:
-							continue
-						if 'GCODE-' + typeName not in layerVBOs:
-							layerVBOs['GCODE-' + typeName] = self._gcodeToVBO_quads(gcodeLayers[n+1:n+2], typeName)
-						glColor4f(color[0]*c,color[1]*c,color[2]*c,color[3])
-						layerVBOs['GCODE-' + typeName].render()
-
-					if n == layerNr - 1:
-						if 'GCODE-MOVE' not in layerVBOs:
-							layerVBOs['GCODE-MOVE'] = self._gcodeToVBO_lines(gcodeLayers[n+1:n+2])
-						glColor4f(0,0,c,1)
-						layerVBOs['GCODE-MOVE'].render()
-				elif result is not None and result._polygons is not None and n < len(result._polygons):
-					polygons = result._polygons[n]
-					for typeName, typeNameGCode, color in lineTypeList:
-						if typeName in polygons:
-							if typeName not in layerVBOs:
-								layerVBOs[typeName] = self._polygonsToVBO_lines(polygons[typeName])
+										allow = True
+							if allow:
+								if typeName not in layerVBOs:
+									if generatedVBO:
+										continue
+									polygons = []
+									for i in xrange(0, 20):
+										if typeName in result._polygons[n + i]:
+											polygons += result._polygons[n + i][typeName]
+									layerVBOs[typeName] = self._polygonsToVBO_lines(polygons)
+									generatedVBO = True
+								glColor4f(color[0]*0.5,color[1]*0.5,color[2]*0.5,color[3])
+								layerVBOs[typeName].render()
+					n -= 20
+				else:
+					c = 1.0 - ((layerNr - n) - 1) * 0.05
+					c = max(0.5, c)
+					while len(self._layerVBOs) < n + 1:
+						self._layerVBOs.append({})
+					layerVBOs = self._layerVBOs[n]
+					if gcodeLayers is not None and ((layerNr - 10 < n < (len(gcodeLayers) - 1)) or len(result._polygons) < 1):
+						for typeNamePolygons, typeName, color in lineTypeList:
+							if typeName is None:
+								continue
+							if 'GCODE-' + typeName not in layerVBOs:
+								layerVBOs['GCODE-' + typeName] = self._gcodeToVBO_quads(gcodeLayers[n+1:n+2], typeName)
 							glColor4f(color[0]*c,color[1]*c,color[2]*c,color[3])
-							layerVBOs[typeName].render()
-				n -= 1
+							layerVBOs['GCODE-' + typeName].render()
+
+						if n == layerNr - 1:
+							if 'GCODE-MOVE' not in layerVBOs:
+								layerVBOs['GCODE-MOVE'] = self._gcodeToVBO_lines(gcodeLayers[n+1:n+2])
+							glColor4f(0,0,c,1)
+							layerVBOs['GCODE-MOVE'].render()
+					elif n < len(result._polygons):
+						polygons = result._polygons[n]
+						for typeName, typeNameGCode, color in lineTypeList:
+							if typeName in polygons:
+								if typeName not in layerVBOs:
+									layerVBOs[typeName] = self._polygonsToVBO_lines(polygons[typeName])
+								glColor4f(color[0]*c,color[1]*c,color[2]*c,color[3])
+								layerVBOs[typeName].render()
+					n -= 1
 		glPopMatrix()
 		if generatedVBO:
 			self._parent._queueRefresh()
@@ -149,6 +164,7 @@ class engineResultView(object):
 			glColor4ub(60,60,60,255)
 			openglHelpers.glDrawStringCenter(_("Loading toolpath for visualization (%d%%)") % (self._gcodeLoadProgress * 100))
 			glPopMatrix()
+		self._resultLock.release()
 
 	def _polygonsToVBO_lines(self, polygons):
 		verts = numpy.zeros((0, 3), numpy.float32)

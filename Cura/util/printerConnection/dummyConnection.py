@@ -1,3 +1,7 @@
+"""
+The dummy connection is a virtual printer connection which simulates the connection to a printer without doing anything.
+This is only enabled when you have a development version. And is used for debugging.
+"""
 __copyright__ = "Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License"
 
 import threading
@@ -9,6 +13,10 @@ import time
 from Cura.util.printerConnection import printerConnectionBase
 
 class dummyConnectionGroup(printerConnectionBase.printerConnectionGroup):
+	"""
+	Group used for dummy conections. Always shows 2 dummy connections for debugging.
+	Has a very low priority so it does not prevent other connections from taking priority.
+	"""
 	def __init__(self):
 		super(dummyConnectionGroup, self).__init__("Dummy")
 		self._list = [dummyConnection("Dummy 1"), dummyConnection("Dummy 2")]
@@ -22,8 +30,10 @@ class dummyConnectionGroup(printerConnectionBase.printerConnectionGroup):
 	def getPriority(self):
 		return -100
 
-#Dummy printer class which is always
 class dummyConnection(printerConnectionBase.printerConnectionBase):
+	"""
+	A dummy printer class to debug printer windows.
+	"""
 	def __init__(self, name):
 		super(dummyConnection, self).__init__(name)
 

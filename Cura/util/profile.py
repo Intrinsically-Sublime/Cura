@@ -39,15 +39,17 @@ settingsList = []
 _selectedMachineIndex = 0
 
 class setting(object):
-	#A setting object contains a configuration setting. These are globally accessible trough the quick access functions
-	# and trough the settingsDictionary function.
-	# Settings can be:
-	# * profile settings (settings that effect the slicing process and the print result)
-	# * preferences (settings that effect how cura works and acts)
-	# * machine settings (settings that relate to the physical configuration of your machine)
-	# * alterations (bad name copied from Skeinforge. These are the start/end code pieces)
-	# Settings have validators that check if the value is valid, but do not prevent invalid values!
-	# Settings have conditions that enable/disable this setting depending on other settings. (Ex: Dual-extrusion)
+	"""
+		A setting object contains a configuration setting. These are globally accessible trough the quick access functions
+		and trough the settingsDictionary function.
+		Settings can be:
+		* profile settings (settings that effect the slicing process and the print result)
+		* preferences (settings that effect how cura works and acts)
+		* machine settings (settings that relate to the physical configuration of your machine)
+		* alterations (bad name copied from Skeinforge. These are the start/end code pieces)
+		Settings have validators that check if the value is valid, but do not prevent invalid values!
+		Settings have conditions that enable/disable this setting depending on other settings. (Ex: Dual-extrusion)
+	"""
 	def __init__(self, name, default, type, category, subcategory):
 		self._name = name
 		self._label = name
@@ -130,7 +132,7 @@ class setting(object):
 		self._values[index] = unicode(value)
 
 	def getValueIndex(self):
-		if self.isMachineSetting():
+		if self.isMachineSetting() or self.isProfile():
 			global _selectedMachineIndex
 			return _selectedMachineIndex
 		return 0
@@ -219,6 +221,7 @@ setting('cool_head_lift',          False, bool,  'expert',   _('Cool')).setLabel
 setting('solid_top', True, bool, 'expert', _('Infill')).setLabel(_("Solid infill top"), _("Create a solid top surface, if set to false the top is filled with the fill percentage. Useful for cups/vases."))
 setting('solid_bottom', True, bool, 'expert', _('Infill')).setLabel(_("Solid infill bottom"), _("Create a solid bottom surface, if set to false the bottom is filled with the fill percentage. Useful for buildings."))
 setting('fill_overlap', 15, int, 'expert', _('Infill')).setRange(0,100).setLabel(_("Infill overlap (%)"), _("Amount of overlap between the infill and the walls. There is a slight overlap with the walls and the infill so the walls connect firmly to the infill."))
+setting('support_type', 'Grid', ['Grid', 'Lines'], 'expert', _('Support')).setLabel(_("Structure type"), _("The type of support structure.\nGrid is very strong and can come off in 1 piece, however, sometimes it is too strong.\nLines are single walled lines that break off one at a time. Which is more work to remove, but as it is less strong it does work better on tricky prints."))
 setting('support_angle', 60, float, 'expert', _('Support')).setRange(0,90).setLabel(_("Overhang angle for support (deg)"), _("The minimal angle that overhangs need to have to get support. With 0 degree being horizontal and 90 degree being vertical."))
 setting('support_fill_rate', 15, int, 'expert', _('Support')).setRange(0,100).setLabel(_("Fill amount (%)"), _("Amount of infill structure in the support material, less material gives weaker support which is easier to remove. 15% seems to be a good average."))
 setting('support_xy_distance', 0.7, float, 'expert', _('Support')).setRange(0,10).setLabel(_("Distance X/Y (mm)"), _("Distance of the support material from the print, in the X/Y directions.\n0.7mm gives a nice distance from the print so the support does not stick to the print."))
@@ -250,6 +253,7 @@ setting('start.gcode', """;Sliced at: {day} {date} {time}
 ;M109 S{print_temperature} ;Uncomment to add your own temperature line
 G21        ;metric values
 G90        ;absolute positioning
+M82        ;set extruder to absolute mode
 M107       ;start with the fan off
 
 G28 X0 Y0  ;move X/Y to min endstops
@@ -472,6 +476,9 @@ def getSettingsForCategory(category, subCategory = None):
 
 ## Profile functions
 def getBasePath():
+	"""
+	:return: The path in which the current configuration files are stored. This depends on the used OS.
+	"""
 	if platform.system() == "Windows":
 		basePath = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 		#If we have a frozen python install, we need to step out of the library.zip
@@ -480,10 +487,16 @@ def getBasePath():
 	else:
 		basePath = os.path.expanduser('~/.cura/%s' % version.getVersion(False))
 	if not os.path.isdir(basePath):
-		os.makedirs(basePath)
+		try:
+			os.makedirs(basePath)
+		except:
+			print "Failed to create directory: %s" % (basePath)
 	return basePath
 
 def getAlternativeBasePaths():
+	"""
+	Search for alternative installations of Cura and their preference files. Used to load configuration from older versions of Cura.
+	"""
 	paths = []
 	basePath = os.path.normpath(os.path.join(getBasePath(), '..'))
 	for subPath in os.listdir(basePath):
@@ -496,43 +509,80 @@ def getAlternativeBasePaths():
 	return paths
 
 def getDefaultProfilePath():
+	"""
+	:return: The default path where the currently used profile is stored and loaded on open and close of Cura.
+	"""
 	return os.path.join(getBasePath(), 'current_profile.ini')
 
-def loadProfile(filename):
-	#Read a configuration file as global config
+def loadProfile(filename, allMachines = False):
+	"""
+		Read a profile file as active profile settings.
+	:param filename:    The ini filename to save the profile in.
+	:param allMachines: When False only the current active profile is saved. If True all profiles for all machines are saved.
+	"""
+	global settingsList
 	profileParser = ConfigParser.ConfigParser()
 	try:
 		profileParser.read(filename)
 	except ConfigParser.ParsingError:
 		return
-	global settingsList
-	for set in settingsList:
-		if set.isPreference():
-			continue
-		section = 'profile'
-		if set.isAlteration():
-			section = 'alterations'
-		if profileParser.has_option(section, set.getName()):
-			set.setValue(unicode(profileParser.get(section, set.getName()), 'utf-8', 'replace'))
+	if allMachines:
+		n = 0
+		while profileParser.has_section('profile_%d' % (n)):
+			for set in settingsList:
+				if set.isPreference():
+					continue
+				section = 'profile_%d' % (n)
+				if set.isAlteration():
+					section = 'alterations_%d' % (n)
+				if profileParser.has_option(section, set.getName()):
+					set.setValue(unicode(profileParser.get(section, set.getName()), 'utf-8', 'replace'), n)
+			n += 1
+	else:
+		for set in settingsList:
+			if set.isPreference():
+				continue
+			section = 'profile'
+			if set.isAlteration():
+				section = 'alterations'
+			if profileParser.has_option(section, set.getName()):
+				set.setValue(unicode(profileParser.get(section, set.getName()), 'utf-8', 'replace'))
 
-def saveProfile(filename):
-	#Save the current profile to an ini file
-	profileParser = ConfigParser.ConfigParser()
-	profileParser.add_section('profile')
-	profileParser.add_section('alterations')
+def saveProfile(filename, allMachines = False):
+	"""
+		Save the current profile to an ini file.
+	:param filename:    The ini filename to save the profile in.
+	:param allMachines: When False only the current active profile is saved. If True all profiles for all machines are saved.
+	"""
 	global settingsList
-	for set in settingsList:
-		if set.isPreference() or set.isMachineSetting():
-			continue
-		if set.isAlteration():
-			profileParser.set('alterations', set.getName(), set.getValue().encode('utf-8'))
-		else:
-			profileParser.set('profile', set.getName(), set.getValue().encode('utf-8'))
+	profileParser = ConfigParser.ConfigParser()
+	if allMachines:
+		for set in settingsList:
+			if set.isPreference() or set.isMachineSetting():
+				continue
+			for n in xrange(0, getMachineCount()):
+				if set.isAlteration():
+					section = 'alterations_%d' % (n)
+				else:
+					section = 'profile_%d' % (n)
+				if not profileParser.has_section(section):
+					profileParser.add_section(section)
+				profileParser.set(section, set.getName(), set.getValue(n).encode('utf-8'))
+	else:
+		profileParser.add_section('profile')
+		profileParser.add_section('alterations')
+		for set in settingsList:
+			if set.isPreference() or set.isMachineSetting():
+				continue
+			if set.isAlteration():
+				profileParser.set('alterations', set.getName(), set.getValue().encode('utf-8'))
+			else:
+				profileParser.set('profile', set.getName(), set.getValue().encode('utf-8'))
 
 	profileParser.write(open(filename, 'w'))
 
 def resetProfile():
-	#Read a configuration file as global config
+	""" Reset the profile for the current machine to default. """
 	global settingsList
 	for set in settingsList:
 		if not set.isProfile():
@@ -551,6 +601,10 @@ def resetProfile():
 		putProfileSetting('retraction_enable', 'True')
 
 def setProfileFromString(options):
+	"""
+	Parse an encoded string which has all the profile settings stored inside of it.
+	Used in combination with getProfileString to ease sharing of profiles.
+	"""
 	options = base64.b64decode(options)
 	options = zlib.decompress(options)
 	(profileOpts, alt) = options.split('\f', 1)
@@ -569,6 +623,10 @@ def setProfileFromString(options):
 					settingsDictionary[key].setValue(value)
 
 def getProfileString():
+	"""
+	Get an encoded string which contains all profile settings.
+	Used in combination with setProfileFromString to share settings in files, forums or other text based ways.
+	"""
 	p = []
 	alt = []
 	global settingsList
@@ -577,12 +635,12 @@ def getProfileString():
 			if set.getName() in tempOverride:
 				p.append(set.getName() + "=" + tempOverride[set.getName()])
 			else:
-				p.append(set.getName() + "=" + set.getValue())
+				p.append(set.getName() + "=" + set.getValue().encode('utf-8'))
 		elif set.isAlteration():
 			if set.getName() in tempOverride:
 				alt.append(set.getName() + "=" + tempOverride[set.getName()])
 			else:
-				alt.append(set.getName() + "=" + set.getValue())
+				alt.append(set.getName() + "=" + set.getValue().encode('utf-8'))
 	ret = '\b'.join(p) + '\f' + '\b'.join(alt)
 	ret = base64.b64encode(zlib.compress(ret, 9))
 	return ret
@@ -594,17 +652,25 @@ def insertNewlines(string, every=64): #This should be moved to a better place th
 	return '\n'.join(lines)
 
 def getPreferencesString():
+	"""
+	:return: An encoded string which contains all the current preferences.
+	"""
 	p = []
 	global settingsList
 	for set in settingsList:
 		if set.isPreference():
-			p.append(set.getName() + "=" + set.getValue())
+			p.append(set.getName() + "=" + set.getValue().encode('utf-8'))
 	ret = '\b'.join(p)
 	ret = base64.b64encode(zlib.compress(ret, 9))
 	return ret
 
 
 def getProfileSetting(name):
+	"""
+		Get the value of an profile setting.
+	:param name: Name of the setting to retrieve.
+	:return:     Value of the current setting.
+	"""
 	if name in tempOverride:
 		return tempOverride[name]
 	global settingsDictionary
@@ -622,12 +688,13 @@ def getProfileSettingFloat(name):
 		return 0.0
 
 def putProfileSetting(name, value):
-	#Check if we have a configuration file loaded, else load the default.
+	""" Store a certain value in a profile setting. """
 	global settingsDictionary
 	if name in settingsDictionary and settingsDictionary[name].isProfile():
 		settingsDictionary[name].setValue(value)
 
 def isProfileSetting(name):
+	""" Check if a certain key name is actually a profile value. """
 	global settingsDictionary
 	if name in settingsDictionary and settingsDictionary[name].isProfile():
 		return True
@@ -635,9 +702,15 @@ def isProfileSetting(name):
 
 ## Preferences functions
 def getPreferencePath():
+	"""
+	:return: The full path of the preference ini file.
+	"""
 	return os.path.join(getBasePath(), 'preferences.ini')
 
 def getPreferenceFloat(name):
+	"""
+	Get the float value of a preference, returns 0.0 if the preference is not a invalid float
+	"""
 	try:
 		setting = getPreference(name).replace(',', '.')
 		return float(eval(setting, {}, {}))
@@ -645,12 +718,17 @@ def getPreferenceFloat(name):
 		return 0.0
 
 def getPreferenceColour(name):
+	"""
+	Get a preference setting value as a color array. The color is stored as #RRGGBB hex string in the setting.
+	"""
 	colorString = getPreference(name)
 	return [float(int(colorString[1:3], 16)) / 255, float(int(colorString[3:5], 16)) / 255, float(int(colorString[5:7], 16)) / 255, 1.0]
 
 def loadPreferences(filename):
+	"""
+	Read a configuration file as global config
+	"""
 	global settingsList
-	#Read a configuration file as global config
 	profileParser = ConfigParser.ConfigParser()
 	try:
 		profileParser.read(filename)
@@ -1004,7 +1082,7 @@ def setAlterationFile(name, value):
 	global settingsDictionary
 	if name in settingsDictionary and settingsDictionary[name].isAlteration():
 		settingsDictionary[name].setValue(value)
-	saveProfile(getDefaultProfilePath())
+	saveProfile(getDefaultProfilePath(), True)
 
 def isTagIn(tag, contents):
 	contents = re.sub(';[^\n]*\n', '', contents)
